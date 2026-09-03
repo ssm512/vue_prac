@@ -1,9 +1,12 @@
 <!-- 이 컴포넌트의 로직을 TypeScript로 작성하며, setup 덕분에 선언값을 template에서 바로 사용할 수 있다. -->
 <script setup lang="ts">
 // Vue의 반응형 참조 값을 만드는 ref 함수를 가져온다.
-import {ref} from 'vue'
+import {ref, watch} from 'vue'
 // 할 일 목록 전체를 표시하고 삭제 이벤트를 전달할 TodoList 컴포넌트를 가져온다.
 import TodoList from './components/TodoList.vue'
+
+// 검색어 입력값을 부모의 keyword와 양방향으로 연결할 SearchInput 컴포넌트를 가져온다.
+import SearchInput from './components/SearchInput.vue'
 
 // 할 일 객체 하나가 가져야 할 속성과 각 속성의 타입을 정의한다.
 interface Todo {
@@ -59,6 +62,14 @@ const deleteTodo = (id: number) => {
   todos.value = todos.value.filter((todo) => todo.id !== id)
 // deleteTodo 함수 정의를 끝낸다.
 }
+
+// 검색창의 현재 문자열을 저장하는 반응형 ref이며 초기값은 빈 문자열이다.
+const keyword = ref('')
+
+watch(keyword, (newV, oldV) => {
+  console.log('이전:', oldV)
+  console.log('현재:',  newV)
+})
 // script setup 로직 영역을 끝낸다.
 </script>
 
@@ -77,6 +88,16 @@ const deleteTodo = (id: number) => {
       :todos="todos"
       @delete="deleteTodo"
     />
+
+    <!-- 검색 영역의 제목을 표시한다. -->
+    <h1>검색</h1>
+
+    <!-- v-model은 keyword 값을 modelValue prop으로 전달하고 update:modelValue 이벤트로 변경값을 다시 받는다. -->
+    <!-- template에서는 ref가 자동으로 풀리므로 keyword.value가 아니라 keyword라고 작성한다. -->
+    <SearchInput v-model="keyword"/>
+
+    <!-- 이중 중괄호 보간법으로 keyword의 현재 값을 문단 안에 출력하며 입력할 때마다 화면도 갱신된다. -->
+    <p>입력값: {{ keyword }}</p>
   <!-- 최상위 div 요소를 닫는다. -->
   </div>
 <!-- template 영역을 끝낸다. -->
