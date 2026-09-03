@@ -1,132 +1,83 @@
-<!--
-  이 컴포넌트는 Vue 3의 Composition API와 <script setup> 문법을 사용합니다.
-
-  Vue 컴포넌트의 대표적인 생명주기 흐름은 다음과 같습니다.
-
-  1. 생성 및 setup 단계
-     - 컴포넌트 인스턴스가 만들어집니다.
-     - <script setup> 안의 최상위 코드가 실행됩니다.
-     - 반응형 상태, 함수, computed, watch, 생명주기 훅 등을 준비합니다.
-
-  2. 마운트 단계
-     - Vue 컴파일러가 template을 JavaScript render 함수로 변환합니다.
-     - Vue가 render 함수를 실행해 가상 DOM인 VNode 트리를 만듭니다.
-     - Vue 렌더러가 VNode 트리를 바탕으로 실제 DOM 요소를 생성합니다.
-     - 생성된 실제 DOM을 브라우저 화면의 DOM 트리에 연결합니다.
-     - 연결이 끝난 뒤 onMounted에 등록한 콜백을 실행합니다.
-
-     전체 흐름을 간단히 표현하면 다음과 같습니다.
-
-     template
-       → render 함수
-       → 가상 DOM(VNode 트리)
-       → Vue 렌더러
-       → 실제 DOM 생성 및 연결
-
-     여기서 가상 DOM이 스스로 화면을 렌더링하는 것은 아닙니다.
-     가상 DOM은 화면 구조를 JavaScript 객체로 표현한 중간 결과이고,
-     실제 렌더링의 주체는 가상 DOM을 해석하는 Vue 렌더러입니다.
-
-  3. 업데이트 단계
-     - 반응형 값이 바뀌면 render 함수가 새로운 VNode 트리를 만듭니다.
-     - Vue 렌더러가 이전 VNode와 새로운 VNode를 비교합니다.
-     - 비교 결과를 이용해 변경이 필요한 실제 DOM 부분만 갱신합니다.
-     - DOM 업데이트가 끝난 뒤에는 onUpdated 훅이 실행될 수 있습니다.
-
-  4. 언마운트 단계
-     - 라우팅이나 v-if 등으로 컴포넌트가 화면에서 제거됩니다.
-     - 제거가 끝난 뒤에는 onUnmounted 훅이 실행될 수 있습니다.
-     - 타이머, 직접 등록한 이벤트 리스너 등의 정리 작업을 이 단계에서 수행합니다.
--->
+<!-- 이 컴포넌트의 로직을 TypeScript로 작성하며, setup 덕분에 선언값을 template에서 바로 사용할 수 있다. -->
 <script setup lang="ts">
-/*
-  onMounted는 Vue가 제공하는 Composition API 생명주기 훅입니다.
+// Vue의 반응형 참조 값을 만드는 ref 함수를 가져온다.
+import {ref} from 'vue'
+// 할 일 목록 전체를 표시하고 삭제 이벤트를 전달할 TodoList 컴포넌트를 가져온다.
+import TodoList from './components/TodoList.vue'
 
-  이 함수를 실행한다고 콜백이 즉시 실행되는 것은 아닙니다.
-  setup 단계에서는 "마운트가 끝나면 이 콜백을 실행해 달라"고 Vue에 등록만 합니다.
-  실제 콜백 실행은 컴포넌트의 초기 렌더링과 DOM 연결이 끝난 뒤입니다.
-
-  생명주기 훅은 현재 컴포넌트 인스턴스와 연결되어야 하므로
-  <script setup>의 최상위 영역에서 동기적으로 등록하는 것이 기본 사용 방식입니다.
-*/
-import { onMounted } from 'vue'
-
-/*
-  search는 사용자 조회 작업을 담당하는 일반 함수입니다.
-
-  함수 선언 자체는 setup 단계에서 실행되지만,
-  함수 본문의 console.log는 search()를 실제로 호출할 때만 실행됩니다.
-
-  실제 프로젝트라면 이 함수 안에서 다음과 같은 작업을 할 수 있습니다.
-
-  - 서버 API로 사용자 목록 요청
-  - 응답 데이터를 ref 또는 reactive 상태에 저장
-  - 로딩 상태와 오류 상태 변경
-
-  이 함수는 Vue 생명주기 훅이 아닙니다.
-  아래의 onMounted 콜백에서 호출하기 때문에 결과적으로 마운트 후 실행되는 것입니다.
-*/
-const search = () => {
-  // 현재 예제에서는 실제 API 호출 대신 콘솔 메시지로 실행 시점을 확인합니다.
-  console.log('사용자 조회')
-// search 함수 정의를 끝냅니다. 아직 이 시점에서는 함수 본문이 실행되지 않습니다.
+// 할 일 객체 하나가 가져야 할 속성과 각 속성의 타입을 정의한다.
+interface Todo {
+  // 각 할 일을 구분하는 id는 숫자 타입이다.
+  id: number
+  // 화면에 표시할 제목은 문자열 타입이다.
+  title: string
+  // 완료 여부는 true 또는 false만 가지는 boolean 타입이다.
+  done: boolean
+// Todo 인터페이스의 타입 정의를 끝낸다.
 }
 
-/*
-  onMounted에 전달한 콜백은 다음 조건이 충족된 후 실행됩니다.
+// `<Todo[]>`는 ref가 보관할 값이 Todo 객체들의 배열임을 지정하는 제네릭 타입 인자다.
+// `Todo[]`의 `[]`는 Todo를 여러 개 담는 배열이라는 뜻이며 `Array<Todo>`와 같다.
+const todos = ref<Todo[]>([
+  // 배열의 첫 번째 Todo 객체를 시작한다.
+  {
+    // 첫 번째 할 일의 고유 번호다.
+    id: 1,
+    // 첫 번째 할 일의 제목이다.
+    title: 'Vue study',
+    // 첫 번째 할 일은 아직 완료되지 않았다.
+    done: false
+  // 첫 번째 Todo 객체를 닫는다.
+  },
+  // 배열의 두 번째 Todo 객체를 시작한다.
+  {
+    // 두 번째 할 일의 고유 번호다.
+    id: 2,
+    // 두 번째 할 일의 제목이다.
+    title: 'Spring study',
+    // 두 번째 할 일은 완료되었다.
+    done: true
+  // 두 번째 Todo 객체를 닫는다.
+  },
+  // 배열의 세 번째 Todo 객체를 시작한다.
+  {
+    // 세 번째 할 일의 고유 번호다.
+    id: 3,
+    // 세 번째 할 일의 제목이다.
+    title: 'PostgrSQL study',
+    // 세 번째 할 일은 아직 완료되지 않았다.
+    done: false
+  // 세 번째 Todo 객체를 닫는다.
+  }
+// Todo 배열을 닫고 ref 함수 호출을 끝낸다.
+])
 
-  - template에서 변환된 render 함수가 실행되었습니다.
-  - render 함수의 실행 결과로 가상 DOM인 VNode 트리가 생성되었습니다.
-  - Vue 렌더러가 VNode를 바탕으로 실제 DOM을 생성했습니다.
-  - 컴포넌트가 만든 DOM 노드가 실제 DOM 트리에 연결되었습니다.
-  - 동기적으로 생성된 자식 컴포넌트도 마운트를 마쳤습니다.
-
-  주의할 점은 가상 DOM이 직접 실제 DOM을 만드는 주체가 아니라는 것입니다.
-  Vue 렌더러가 VNode라는 중간 표현을 읽고 실제 DOM을 생성하거나 수정합니다.
-
-  따라서 다음과 같이 실제 DOM이 필요한 초기화 작업에 적합합니다.
-
-  - template ref를 사용한 DOM 요소 접근
-  - 입력창에 포커스 주기
-  - DOM 크기나 위치 측정
-  - DOM에 의존하는 외부 라이브러리 초기화
-  - 화면 진입 시 최초 데이터 조회
-
-  알아둘 점:
-
-  - onMounted는 컴포넌트 인스턴스가 마운트될 때 한 번 실행됩니다.
-  - 반응형 값이 바뀌어 화면이 다시 렌더링될 때마다 실행되지는 않습니다.
-  - 업데이트 이후의 작업은 onUpdated 또는 watch가 더 적합합니다.
-  - 컴포넌트가 제거된 뒤의 정리 작업은 onUnmounted에서 처리합니다.
-  - 서버 사이드 렌더링 과정에서는 onMounted가 실행되지 않고 클라이언트에서 마운트될 때 실행됩니다.
-*/
-onMounted(() => {
-  /*
-    컴포넌트가 실제 화면에 연결된 뒤 사용자 조회 함수를 호출합니다.
-
-    이 컴포넌트가 라우팅이나 v-if에 의해 제거됐다가 새로 생성되면
-    새로운 컴포넌트 인스턴스가 다시 마운트되므로 search도 다시 호출됩니다.
-
-    반대로 같은 인스턴스에서 상태만 변경되어 재렌더링되는 경우에는
-    onMounted가 다시 실행되지 않으므로 search도 자동으로 재호출되지 않습니다.
-  */
-  search()
-// onMounted 콜백과 생명주기 훅 등록을 끝냅니다.
-})
-
-/*
-  이 예제의 실제 실행 순서를 정리하면 다음과 같습니다.
-
-  1. 컴포넌트 인스턴스 생성
-  2. <script setup> 실행
-  3. onMounted 콜백 등록
-  4. template을 바탕으로 만들어진 render 함수 실행
-  5. render 함수가 가상 DOM인 VNode 트리 생성
-  6. Vue 렌더러가 VNode를 바탕으로 실제 DOM 생성
-  7. 실제 DOM이 브라우저 화면의 DOM 트리에 연결됨
-  8. onMounted 콜백 실행
-  9. search() 실행
-  10. 콘솔에 "사용자 조회" 출력
-*/
-// 컴포넌트의 TypeScript 로직 영역을 끝냅니다.
+// 하위 컴포넌트가 전달한 id를 받아 해당 할 일을 삭제하는 함수다.
+const deleteTodo = (id: number) => {
+  // script에서는 ref의 실제 값에 접근할 때 `.value`를 사용한다.
+  // filter로 삭제할 id와 다른 항목만 남긴 새 배열을 만들어 todos.value에 저장한다.
+  todos.value = todos.value.filter((todo) => todo.id !== id)
+// deleteTodo 함수 정의를 끝낸다.
+}
+// script setup 로직 영역을 끝낸다.
 </script>
+
+<!-- 화면에 렌더링할 구조와 컴포넌트를 작성하는 영역이다. -->
+<template>
+  <!-- 제목과 목록 컴포넌트를 하나로 묶는다. -->
+  <div>
+    <!-- 화면의 주 제목을 표시한다. -->
+    <h1>Todo List</h1>
+
+    <!-- TodoList 컴포넌트의 prop과 이벤트 연결을 시작한다. -->
+    <!-- `:todos`의 `:`는 v-bind 축약형이며 todos 배열을 자식의 todos prop으로 전달한다. template에서는 ref가 자동으로 풀린다. -->
+    <!-- `@delete`의 `@`는 v-on 축약형이며 TodoList가 보낸 delete 이벤트의 id를 deleteTodo에 전달한다. -->
+    <!-- 마지막 `/>`는 내부 내용이 없는 TodoList 컴포넌트 태그를 닫는다. -->
+    <TodoList
+      :todos="todos"
+      @delete="deleteTodo"
+    />
+  <!-- 최상위 div 요소를 닫는다. -->
+  </div>
+<!-- template 영역을 끝낸다. -->
+</template>
